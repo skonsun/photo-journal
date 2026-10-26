@@ -64,3 +64,29 @@ jobs:
           cache-to: type=gha,mode=max
           provenance: true
           sbom: true
+  verify-public-image:
+    if: github.event_name != 'pull_request'
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull without registry credentials and test a clean container
+        shell: bash
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY,,}:sha-${GITHUB_SHA::7}"
+          config="$(mktemp -d)"
+          docker --config "$config" pull "$image"
+          trap 'docker rm -f photo-journal-public-smoke >/dev/null 2>&1 || true' EXIT
+          docker run -d --name photo-journal-public-smoke \
+            --read-only --tmpfs /data:uid=1000,gid=1000,size=32m \
+            --tmpfs /tmp:size=32m --cap-drop ALL \
+            --security-opt no-new-privileges:true \
+            -e ADMIN_PASSWORD="$(openssl rand -hex 24)" \
+            -p 127.0.0.1:18789:8789 "$image"
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:18789/health; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs photo-journal-public-smoke
+          exit 1
