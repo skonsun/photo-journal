@@ -1,0 +1,30 @@
+services:
+  photo-journal:
+    image: ghcr.io/skonsun/photo-journal:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    ports:
+      - "${HOST_PORT:-8789}:8789"
+    environment:
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD:?Set a unique ADMIN_PASSWORD in .env}"
+      SCAN_INTERVAL: "${SCAN_INTERVAL:-15}"
+      PHOTO_UTC_OFFSET_HOURS: "${PHOTO_UTC_OFFSET_HOURS:-8}"
+      ALLOW_ORIGINAL: "${ALLOW_ORIGINAL:-true}"
+    volumes:
+      - type: bind
+        source: "${PHOTO_PATH:?Set PHOTO_PATH to your photo folder}"
+        target: /photos
+        read_only: true
+        bind:
+          create_host_path: false
+      - journal-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 768m
+    cpus: 2
+volumes:
+  journal-data:
