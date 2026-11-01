@@ -1,4 +1,4 @@
-FROM python:3.13-slim
+FROM python:3.15-slim
 ARG PIP_INDEX_URL=https://pypi.org/simple
 ARG VERSION=0.1.0
 LABEL org.opencontainers.image.title="Photo Journal" \
